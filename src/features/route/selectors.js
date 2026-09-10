@@ -1,4 +1,5 @@
 import { STOPS, KM_PER_UNIT, BASE_SPEED } from './routeData';
+import { createSelector } from '@reduxjs/toolkit';
 
 const DELIVERIES = STOPS.slice(1);
 
@@ -18,10 +19,10 @@ export const selectNextStopIndex = (s) => {
   return completedCount;
 };
 
-export const selectNextStop = (s) => {
-  const i = selectNextStopIndex(s);
-  return i === null ? null : DELIVERIES[i];
-};
+export const selectNextStop = createSelector(
+  [selectNextStopIndex],
+  (i) => (i === null ? null : DELIVERIES[i]),
+);
 
 
 export const selectDistanceToNextStop = (s) => {
@@ -47,16 +48,17 @@ export const selectProgress = (s) => {
 };
 
 //  Per-stop display state.
-export const selectStopStates = (s) => {
-  const { completedCount, status } = s.route;
-  return DELIVERIES.map((stop, i) => {
-    if (i < completedCount) return { ...stop, state: 'delivered' };
-    if (status === 'delivering' && i === completedCount) {
-      return { ...stop, state: 'delivering' };
-    }
-    return { ...stop, state: 'pending' };
-  });
-};
+export const selectStopStates = createSelector(
+  [selectCompletedCount, selectStatus],
+  (completedCount, status) =>
+    DELIVERIES.map((stop, i) => {
+      if (i < completedCount) return { ...stop, state: 'delivered' };
+      if (status === 'delivering' && i === completedCount) {
+        return { ...stop, state: 'delivering' };
+      }
+      return { ...stop, state: 'pending' };
+    }),
+);
 
 // Legend summary of truck status
 export const selectStatusLabel = (s) => {

@@ -184,7 +184,7 @@ export default function RouteMap() {
   return (
     <svg
       viewBox="0 0 800 500"
-      className="block w-full"
+      className="block w-full max-h-[55vh]"
       role="img"
       aria-label="Delivery route map showing the truck's position between the depot and three delivery points"
     >
