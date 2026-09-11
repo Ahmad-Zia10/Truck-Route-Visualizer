@@ -1,39 +1,67 @@
-# Truck Route Visualizer
+<div align="center">
 
-A delivery route simulator for a single dispatch run. A truck drives a fixed route from a depot through three drops, and the screen answers three questions at any moment: where the truck is, when it reaches the next stop, and what has been delivered.
+# 🚚 Truck Route Visualizer
 
-**[Live demo →](https://truck-route-visualizer-ashy.vercel.app/)**
+> A dispatch screen for a single delivery run — where the truck is, when it arrives, and what has been delivered.
 
-<!-- Screenshot: capture the wide layout at ~1400px and save it to docs/screenshot.png,
-     then uncomment the line below.
-![The dispatch screen showing the route map and status panel](docs/screenshot.png)
--->
+<br/>
 
+![React](https://img.shields.io/badge/React-19-087ea4?style=for-the-badge&logo=react&logoColor=white)
+![Redux Toolkit](https://img.shields.io/badge/Redux_Toolkit-764abc?style=for-the-badge&logo=redux&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-0ea5e9?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646cff?style=for-the-badge&logo=vite&logoColor=white)
 
-## Contents
+<br/>
 
-- [Features](#features)
-- [Running locally](#running-locally)
-- [How it works](#how-it-works)
-- [Project structure](#project-structure)
-- [Design decisions](#design-decisions)
-- [Accessibility](#accessibility)
-- [Deployment](#deployment)
-- [Tech stack](#tech-stack)
+🔗 **[Live Demo](https://truck-route-visualizer-ashy.vercel.app/)** &nbsp;·&nbsp; 📂 **[Source](https://github.com/Ahmad-Zia10/Truck-Route-Visualizer)** &nbsp;·&nbsp;
 
-## Features
+</div>
 
-- Animated truck that follows curved route segments and rotates to face its heading
-- Live readouts for completed drops, next stop, ETA, distance covered and total route length
-- Per-stop delivery states — pending, unloading, delivered — shown on both the map and the manifest
-- Pause and resume mid-route, including mid-unload, without losing position
-- Simulation speed control (1×, 2×, 4×) so a full route can be reviewed in around fifteen seconds
-- Light and dark themes, following the system preference by default
-- Responsive from 375px upward
+---
 
-## Running locally
+<div align="center">
 
-Requires Node.js 18 or later. Built and tested on Node 22.
+<!-- Record a ~10s clip of a full route at 4x, save as docs/demo.gif -->
+![Route simulation](docs/demo.gif)
+
+<sub>A full route at 4× speed — depot → D1 → D2 → D3</sub>
+
+</div>
+
+---
+
+## What is this?
+
+A dispatcher watching a delivery truck needs three answers, at a glance, without
+hunting: **where is it right now**, **has a given drop been made**, and **when
+does it reach the next one**. This screen answers those three and nothing else.
+
+The truck follows a fixed route from a depot through three drops, pausing at each
+to unload. The map and the status panel are two readings of the same underlying
+number, so they cannot disagree — which matters, because a dispatcher who spots
+one contradiction stops trusting the whole display.
+
+Built as a frontend interview assignment, which is why a simulation speed control
+exists: a real dispatcher would never fast-forward a truck, but a reviewer needs
+to see a full route in fifteen seconds rather than a minute.
+
+---
+
+## ✨ Features
+
+- 🛻 &nbsp;Animated truck following curved route segments, rotating to face its heading
+- 📊 &nbsp;Live readouts — next stop, ETA, distance covered, route length
+- 📍 &nbsp;Three delivery states shown identically on the map and in the manifest
+- ⏸️ &nbsp;Pause and resume mid-route, including mid-unload, without losing position
+- ⏩ &nbsp;Speed control (1× / 2× / 4×) for reviewing a full route quickly
+- 🌗 &nbsp;Light and dark themes, following system preference
+- 📱 &nbsp;Responsive from 375px
+
+---
+
+## 🚀 Running locally
+
+Requires Node 18 or later. Built on Node 22.
 
 ```bash
 git clone https://github.com/Ahmad-Zia10/Truck-Route-Visualizer.git
@@ -42,38 +70,101 @@ npm install
 npm run dev
 ```
 
-The dev server starts at `http://localhost:5173`.
+Dev server runs at `http://localhost:5173`. Also available: `npm run build`,
+`npm run preview`, `npm run lint`.
 
-| Script | Purpose |
-| --- | --- |
-| `npm run dev` | Start the dev server with hot module replacement |
-| `npm run build` | Produce a production build in `dist/` |
-| `npm run preview` | Serve the production build locally |
-| `npm run lint` | Run ESLint |
+---
 
-## How it works
+## ⚙️ How it works
 
-The route is three quadratic Bézier segments defined in `src/features/route/routeData.js`. On mount, `RouteMap` measures each segment with `getTotalLength()` and stores the lengths, the cumulative distance to each stop, and the route total in Redux. Every distance in the app derives from those measurements, so the map and the numbers cannot disagree.
+The route is three quadratic Bézier segments. On mount, each is measured with
+`getTotalLength()`, giving the segment lengths, the cumulative distance to every
+stop, and the route total.
 
-Motion runs in a `requestAnimationFrame` loop. Each frame advances a distance counter, calls `getPointAtLength()` to find the truck's position, and samples a point slightly ahead to compute the heading angle. The frame delta is clamped to 100ms so a backgrounded tab does not teleport the truck on return.
+From there the whole app runs on **one number: distance travelled from the
+depot.** Truck position, current leg, next stop, ETA, the covered portion of the
+route, every readout — all computed from it. Nothing derivable is stored, so the
+map and the panel cannot drift apart.
 
-The loop keeps a per-frame cache of distance, elapsed time and dwell, then dispatches to Redux at roughly 10Hz rather than every frame. Without the throttle, a store update per frame would re-render the panel 60 times a second to change a two-decimal readout. The store stays the source of truth: the cache is re-seeded from it whenever the loop restarts, which is what lets a pause, a remount or a reset resume from the exact stored position.
+Motion runs in a `requestAnimationFrame` loop. Each frame advances the distance,
+calls `getPointAtLength()` for the position, and samples slightly ahead for the
+heading angle. Frame deltas are clamped at 100ms so a backgrounded tab does not
+teleport the truck on return.
 
-A run moves through five states — `idle`, `moving`, `delivering`, `complete`, and a paused flag orthogonal to those. Arriving at a stop switches to `delivering` and starts a dwell timer; when the dwell completes, the stop is marked delivered and the truck moves on.
+A run moves through four states — `idle`, `moving`, `delivering`, `complete` —
+with `isPaused` sitting orthogonal to all four. That separation is what lets a
+paused unload resume *as an unload*: were pause a fifth state value, it would
+overwrite the one it interrupted and leave nothing to return to.
 
-## Project structure
+---
+
+## 🧭 Key decisions
+
+### 🗺️ An SVG map, not Leaflet
+
+The brief asks for an origin, three delivery points and a route path — not for
+real geography. Inline SVG gives direct control over the animation with no API
+key, no tile loading, and nothing to work around in a mapping library's own
+render cycle.
+
+> **Trade-off** — this isn't real geography, and map integration was a listed
+> skill. `routeData.js` is the seam: coordinates and paths in a shape that maps
+> onto lat/lng, so swapping in Leaflet changes that file and the renderer while
+> the state layer stays put.
+
+### 📐 Three route segments, not one continuous path
+
+Both animate identically. They differ on the question the app asks constantly:
+**how far along the route is D1?**
+
+With three segments, D1's distance *is* the length of the first segment. It falls
+out of the measurement, and every stop lands on a boundary by construction.
+
+With one merged path, you know the route is 795 units long and you know where D1
+sits — but the path doesn't know those facts are related. You'd walk the curve
+searching for the nearest point: approximate, and only necessary because merging
+threw the boundaries away.
+
+> **Trade-off** — about eight extra lines to work out which leg is partially
+> covered when drawing the covered route.
+
+### 🔢 Completed deliveries are stored, not derived
+
+Almost everything here is derived. This is the deliberate exception.
+
+Counting deliveries *looks* derivable — count the stops the truck has passed. It
+breaks at the last one. When the final delivery finishes, the truck doesn't move;
+it's at D3 before and after. Position can't tell "unloading at D3" from "route
+complete", so a derived count would need a special case bolted on for the final
+stop.
+
+A delivery finishing is an event in time, not a position. It belongs alongside
+`status`, which exists for the same reason: distance answers *where*, never *what
+is happening*.
+
+### ⚡ The loop caches per frame, dispatches at 10Hz
+
+The store stays the source of truth. The loop keeps a per-frame cache, re-seeded
+from the store whenever it restarts, and dispatches back roughly ten times a
+second instead of sixty — because nobody reads a two-decimal number sixty times a
+second.
+
+> **Trade-off** — position briefly lives in two places. That matters at exactly
+> one moment: pausing, where the truck is painted at frame precision while the
+> store can be 100ms behind. So pause flushes the exact frame position before
+> stopping, closing the gap at the only point it would show.
+
+---
+
+## 📁 Project structure
 
 ```
 src/
 ├── components/
 │   ├── RouteMap.jsx         Map surface, geometry measurement, animation loop
 │   ├── StatusPanel.jsx      Status line, readouts, delivery manifest
-│   ├── Controls.jsx         Start/pause, reset, speed selection
-│   └── map/
-│       ├── MapGround.jsx    Ground plate and grid
-│       ├── DepotMark.jsx    Route origin
-│       ├── StopPin.jsx      Delivery stop in one of three states
-│       └── TruckMark.jsx    Vehicle silhouette
+│   ├── Controls.jsx         Start/pause, reset, speed
+│   └── map/                 Ground, depot, stop pins, truck
 ├── features/route/
 │   ├── routeData.js         Stops, segment paths, speed and scale constants
 │   ├── routeSlice.js        State shape and reducers
@@ -83,47 +174,37 @@ src/
 └── index.css                Design tokens and base styles
 ```
 
-## Design decisions
+Components are split by **how often they change**, not by what they look like.
+`RouteMap` owns everything updating per frame, `StatusPanel` everything updating
+at milestones, `Controls` everything changing on user action.
 
-**Colour carries meaning, separately from chrome.** Three delivery states each own a fixed hue — grey for pending, orange for unloading, green for delivered — and those hues appear identically on the map pins and in the manifest, so the two readings of the route agree. The interface accent is blue and drives only buttons, focus rings and selection. Because the two are independent, restyling the chrome can never change what a colour on the map means.
+---
 
-**The map shows only what it can justify.** Earlier iterations had invented roads, parkland and a river. None encoded anything, and the road lines in particular were higher contrast than the route itself, pulling the eye away from the one thing the map exists to show. They were removed. What remains is a faint grid for scale, and each leg's distance printed at its midpoint — so the map itself answers "how far is the next leg" rather than leaving the panel to carry it.
+## ⚠️ Known limitations
 
-**Panel hierarchy follows reading order.** Top to bottom: what is happening now, then the numbers, then what has been delivered. The delivery manifest is the visual centre, since it answers one of the screen's three questions and the status line is self-describing at body size.
+- Not real geography — the map is a stylised canvas, not tiles
+- One hard-coded route; `routeData.js` is data-shaped, so a fourth stop is one
+  entry per array, but there's no route picker
+- No persistence — a refresh returns the truck to the depot
+- ETA reports simulated time and is unaffected by the speed control, which is why
+  the readout is labelled as such
 
-**Map labels use a stroke halo rather than a container.** Setting `paint-order: stroke` draws an outline behind the glyphs, keeping text legible over the grid without four identical pill-shaped boxes competing with the pins.
+## 🔭 With more time
 
-**Two accent values.** A colour bright enough to work as a fill on a large shape usually fails the 4.5:1 text threshold. Rather than compromise the fill or fail the text, the accent role splits: `--accent` for fills, `--accent-ink` — the same hue, darkened — wherever it carries text.
+- Unit tests on the distance-to-position mapping and the stop-arrival boundary —
+  the two places a subtle bug could hide
+- Multiple trucks, which the state shape handles by keying the run fields per
+  vehicle
+- Real tiles behind the same `routeData.js` interface
 
-## Accessibility
+---
 
-- All text meets WCAG AA contrast in both themes; map pins clear the 3:1 threshold for non-text content, verified by calculation rather than by eye
-- Delivery states differ in shape and fill, not colour alone — pending pins are hollow, unloading pins carry a ring, delivered pins carry a check
-- Status changes are announced through a polite live region, derived only from discrete state so the ~10Hz distance updates never trigger repeat announcements
-- The primary and reset controls meet the 44px touch-target minimum; the speed buttons are 36px tall and 44px wide, sized to sit as a grouped segmented control
-- The reduced-motion preference is handled in JavaScript rather than with a blanket CSS override, so the pin colour transition that signals a state change is preserved while decorative motion stops
-- Keyboard focus is visible throughout
+## 🛠️ Tech stack
 
-## Deployment
+**React 19** · **Redux Toolkit** · **Tailwind CSS 4** over CSS custom properties ·
+**Vite** · **SVG** for map and path geometry
 
-Deployed on Vercel from the `main` branch. Vercel detects the Vite preset automatically; no configuration file is required.
+Typeface is Barlow, with Barlow Semi Condensed for map lettering.
 
-| Setting | Value |
-| --- | --- |
-| Build command | `npm run build` |
-| Output directory | `dist` |
-| Install command | `npm install` |
-
-No environment variables are needed — the app has no backend.
-
-## Tech stack
-
-| | |
-| --- | --- |
-| **React 19** | UI |
-| **Redux Toolkit** | State, with derived values in memoized selectors |
-| **Tailwind CSS 4** | Styling, over CSS custom properties for theming |
-| **Vite** | Build tooling |
-| **SVG** | Map rendering and path geometry |
-
-Typeface is [Barlow](https://fonts.google.com/specimen/Barlow), with Barlow Semi Condensed for map lettering.
+Deployed on **Vercel** from `main` — Vite preset detected automatically, no
+configuration and no environment variables needed.
