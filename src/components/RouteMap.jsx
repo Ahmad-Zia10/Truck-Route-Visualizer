@@ -1,6 +1,10 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import MapGround from './map/MapGround';
+import DepotMark from './map/DepotMark';
+import StopPin from './map/StopPin';
+import TruckMark from './map/TruckMark';
 import {
   STOPS,
   SEGMENTS,
@@ -214,35 +218,29 @@ export default function RouteMap() {
   // instead of cross-fading, so state changes stay legible without animation.
   const pinTransition = useReducedMotion() ? undefined : 'fill 400ms ease';
 
-  const pinFill = (state) =>
-    state === 'delivered'
-      ? 'var(--pin-done)'
-      : state === 'delivering'
-        ? 'var(--pin-active)'
-        : 'var(--pin-pending)';
-
   return (
     <svg
       viewBox="0 0 800 500"
-      className="block w-full max-h-[55vh]"
+      preserveAspectRatio="xMidYMid meet"
+      className="block h-full w-full"
       role="img"
       aria-label="Delivery route map showing the truck's position between the depot and three delivery points"
     >
-      <defs>
-        <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
-          <path
-            d="M 100 0 L 0 0 0 100"
-            fill="none"
-            stroke="var(--grid)"
-            strokeWidth="1"
-          />
-        </pattern>
-      </defs>
+      <MapGround />
 
-      <rect width="800" height="500" fill="var(--map-bg)" />
-      <rect width="800" height="500" fill="url(#grid)" />
-
-      {/* Planned route — dashed, muted */}
+      {/* Planned route — the leg still to drive. Drawn as a cased dashed line so
+          it reads as a marked-up intention over the map, not as another road. */}
+      {SEGMENTS.map((seg) => (
+        <path
+          key={`plan-case-${seg.from}-${seg.to}`}
+          d={seg.d}
+          fill="none"
+          stroke="var(--map-bg)"
+          strokeWidth="9"
+          strokeLinecap="round"
+          opacity="0.85"
+        />
+      ))}
       {SEGMENTS.map((seg, i) => (
         <path
           key={`plan-${seg.from}-${seg.to}`}
@@ -252,13 +250,15 @@ export default function RouteMap() {
           d={seg.d}
           fill="none"
           stroke="var(--route)"
-          strokeWidth="2.5"
-          strokeDasharray="9 7"
+          strokeWidth="3"
+          strokeDasharray="2 10"
           strokeLinecap="round"
         />
       ))}
 
-      {/* Covered route — solid, drawn on top and revealed as the truck moves */}
+      {/* Covered route — solid and confident, revealed as the truck advances.
+          The casing is static; only the coloured trail on top is masked back by
+          the loop, so the corridor stays visible for the whole route. */}
       {SEGMENTS.map((seg, i) => (
         <path
           key={`trail-${seg.from}-${seg.to}`}
@@ -268,73 +268,18 @@ export default function RouteMap() {
           d={seg.d}
           fill="none"
           stroke="var(--trail)"
-          strokeWidth="3.5"
+          strokeWidth="5"
           strokeLinecap="round"
         />
       ))}
 
-      {/* Depot */}
-      <circle
-        cx={ORIGIN.x}
-        cy={ORIGIN.y}
-        r="8"
-        fill="var(--panel)"
-        stroke="var(--trail)"
-        strokeWidth="4"
-      />
-      <text
-        x={ORIGIN.x}
-        y={ORIGIN.y + 28}
-        textAnchor="middle"
-        fill="var(--text-soft)"
-        fontSize="14"
-        fontWeight="600"
-      >
-        Depot
-      </text>
+      <DepotMark x={ORIGIN.x} y={ORIGIN.y} />
 
-      {/* Delivery pins */}
       {stopStates.map((stop) => (
-        <g key={stop.id}>
-          <path
-            d={`M ${stop.x} ${stop.y} c -12 -13 -12 -29 0 -29 c 12 0 12 16 0 29 z`}
-            fill={pinFill(stop.state)}
-            style={{ transition: pinTransition }}
-          />
-          {stop.state === 'delivered' ? (
-            <path
-              d={`M ${stop.x - 5} ${stop.y - 20} l 3.5 3.5 l 6 -7`}
-              fill="none"
-              stroke="var(--panel)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          ) : (
-            <circle cx={stop.x} cy={stop.y - 19} r="4.5" fill="var(--map-bg)" />
-          )}
-          <text
-            x={stop.x}
-            y={stop.y - 38}
-            textAnchor="middle"
-            fill="var(--text-soft)"
-            fontSize="14"
-            fontWeight="600"
-          >
-            {stop.label}
-          </text>
-        </g>
+        <StopPin key={stop.id} stop={stop} transition={pinTransition} />
       ))}
 
-      {/* Truck — drawn around (0,0) so the group transform can rotate it */}
-      <g ref={truckRef}>
-        <g transform="translate(-13, -8)">
-          <rect width="18" height="13" rx="2.5" fill="var(--truck)" />
-          <rect x="17" y="3.5" width="9" height="9.5" rx="2" fill="var(--truck)" />
-          <circle cx="5" cy="14" r="3" fill="var(--truck)" />
-          <circle cx="20" cy="14" r="3" fill="var(--truck)" />
-        </g>
-      </g>
+      <TruckMark ref={truckRef} />
     </svg>
   );
 }

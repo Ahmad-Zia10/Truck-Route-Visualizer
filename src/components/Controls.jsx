@@ -32,12 +32,12 @@ export default function Controls() {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-(--line) bg-(--panel) px-5 py-3">
       <button
         type="button"
         onClick={onPrimary}
         disabled={action === 'done'}
-        className="min-h-11 rounded-md bg-(--accent) px-5 text-sm font-semibold text-(--on-accent) transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        className="min-h-11 rounded-md bg-(--accent) px-6 text-sm font-semibold text-(--on-accent) transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {LABELS[action]}
       </button>
@@ -46,7 +46,7 @@ export default function Controls() {
         type="button"
         onClick={() => dispatch(reset())}
         disabled={status === 'idle'}
-        className="min-h-11 rounded-md border border-(--line) px-4 text-sm font-medium text-(--text) transition-colors hover:bg-(--map-bg) disabled:cursor-not-allowed disabled:opacity-40"
+        className="min-h-11 rounded-md border border-(--line) px-4 text-sm font-medium text-(--text) transition-colors hover:bg-(--surface) disabled:cursor-not-allowed disabled:opacity-40"
       >
         Reset
       </button>
@@ -54,10 +54,10 @@ export default function Controls() {
       {/* Labelled as a simulation control, not dispatch tooling: a real
           dispatcher cannot fast-forward a truck. It exists so a reviewer can
           watch the whole route in about fifteen seconds. */}
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-2.5">
         <span
           id="sim-speed-label"
-          className="text-[11px] font-medium tracking-wide text-(--text-soft)"
+          className="text-[10px] font-semibold uppercase tracking-[0.09em] text-(--text-soft)"
         >
           Simulation speed
         </span>
@@ -72,7 +72,7 @@ export default function Controls() {
               type="button"
               onClick={() => dispatch(speedChanged(option))}
               aria-pressed={speed === option}
-              className={`tnum min-h-9 min-w-11 rounded px-3 text-sm font-medium transition-colors ${
+              className={`tnum min-h-9 min-w-11 rounded text-sm font-medium transition-colors ${
                 speed === option
                   ? 'bg-(--accent) text-(--on-accent)'
                   : 'text-(--text-soft) hover:text-(--text)'
