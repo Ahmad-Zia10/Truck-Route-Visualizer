@@ -75,30 +75,20 @@ export default function StopPin({ stop, transition }) {
         <circle cx="0" cy="-25" r="3.5" fill="var(--pin-pending)" />
       )}
 
-      {/* Label plate: the stop code on a solid chip, so it stays legible
-          wherever the pin lands — over land, water or a road. */}
-      <g transform="translate(0 -46)">
-        <rect
-          x="-15"
-          y="-11"
-          width="30"
-          height="19"
-          rx="4"
-          fill="var(--panel)"
-          stroke="var(--line)"
-          strokeWidth="1"
-        />
-        <text
-          textAnchor="middle"
-          y="3"
-          fill="var(--text)"
-          fontSize="12"
-          fontWeight="700"
-          letterSpacing="0.3"
-        >
-          {label}
-        </text>
-      </g>
+      {/* The stop code set directly on the map. The stroke is drawn behind the
+          glyphs, so the halo keeps it legible over the grid without a box. */}
+      <text
+        y="-38"
+        textAnchor="middle"
+        fill="var(--text)"
+        stroke="var(--map-bg)"
+        strokeWidth="4"
+        paintOrder="stroke"
+        fontSize="14"
+        fontWeight="600"
+      >
+        {label}
+      </text>
     </g>
   );
 }

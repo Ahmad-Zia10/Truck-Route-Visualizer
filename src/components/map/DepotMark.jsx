@@ -21,28 +21,20 @@ export default function DepotMark({ x, y }) {
       />
       <circle cx="0" cy="0" r="3.2" fill="var(--trail)" />
 
-      <g transform="translate(0 26)">
-        <rect
-          x="-27"
-          y="-11"
-          width="54"
-          height="19"
-          rx="4"
-          fill="var(--panel)"
-          stroke="var(--line)"
-          strokeWidth="1"
-        />
-        <text
-          textAnchor="middle"
-          y="3"
-          fill="var(--text)"
-          fontSize="11"
-          fontWeight="700"
-          letterSpacing="1.1"
-        >
-          DEPOT
-        </text>
-      </g>
+      {/* Set on the map itself. The stroke is drawn behind the glyphs, which
+          gives a halo that stays legible over the grid without a container. */}
+      <text
+        y="30"
+        textAnchor="middle"
+        fill="var(--text)"
+        stroke="var(--map-bg)"
+        strokeWidth="4"
+        paintOrder="stroke"
+        fontSize="14"
+        fontWeight="600"
+      >
+        Depot
+      </text>
     </g>
   );
 }
