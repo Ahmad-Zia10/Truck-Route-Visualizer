@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import MapGround from './map/MapGround';
@@ -10,6 +10,7 @@ import {
   SEGMENTS,
   BASE_SPEED,
   DWELL_SECONDS,
+  KM_PER_UNIT,
 } from '../features/route/routeData';
 import {
   geometryMeasured,
@@ -32,6 +33,10 @@ import {
 
 const ORIGIN = STOPS[0];
 
+// How far along the first leg the truck is drawn while at rest, in SVG units,
+// so it clears the depot marker.
+const AT_REST_OFFSET = 16;
+
 export default function RouteMap() {
   const dispatch = useDispatch();
 
@@ -48,6 +53,10 @@ export default function RouteMap() {
   const pathRefs = useRef([]);
   const trailRefs = useRef([]);
   const truckRef = useRef(null);
+
+  // Where each leg's distance label sits. Presentation only — derived from the
+  // same measurement pass that seeds the store, and never read by the loop.
+  const [legLabels, setLegLabels] = useState([]);
 
   // Per-frame cache of the values the store owns. The store is the source of
   // truth; these exist so a frame can advance without waiting on a dispatch,
@@ -71,6 +80,28 @@ export default function RouteMap() {
         total: stopDistances.at(-1),
       }),
     );
+
+    // Each leg's length in km, set at the midpoint of that leg and pushed off
+    // the curve along its normal so the figure never sits on the line.
+    setLegLabels(
+      segmentLengths.map((len, i) => {
+        const path = pathRefs.current[i];
+        const mid = path.getPointAtLength(len / 2);
+        const ahead = path.getPointAtLength(Math.min(len / 2 + 1, len));
+        const dx = ahead.x - mid.x;
+        const dy = ahead.y - mid.y;
+        const mag = Math.hypot(dx, dy) || 1;
+        // Left-hand normal, then flipped so the label always sits above the
+        // curve rather than flipping side with the leg's direction.
+        const sign = -dy / mag < 0 ? -1 : 1;
+        return {
+          key: `${SEGMENTS[i].from}-${SEGMENTS[i].to}`,
+          x: mid.x + (dy / mag) * 14 * sign,
+          y: mid.y + (-dx / mag) * 14 * sign,
+          km: (len * KM_PER_UNIT).toFixed(2),
+        };
+      }),
+    );
   }, [dispatch]);
 
   // paint the trail
@@ -85,7 +116,14 @@ export default function RouteMap() {
     while (i < segmentLengths.length - 1 && d >= stopDistances[i]) i += 1;
 
     const segStart = i === 0 ? 0 : stopDistances[i - 1];
-    const local = Math.max(0, Math.min(d - segStart, segmentLengths[i]));
+    // Presentation only: at rest the truck is nudged along the first leg so it
+    // does not sit on top of the depot marker. The store's distance is
+    // untouched — this shifts where the same position is drawn, nothing else.
+    const atRest = d === 0 ? AT_REST_OFFSET : 0;
+    const local = Math.max(
+      0,
+      Math.min(d - segStart + atRest, segmentLengths[i]),
+    );
     const path = pathRefs.current[i];
 
     // Position the truck at the right point along the path, and rotate it to face the direction of travel.
@@ -129,7 +167,7 @@ export default function RouteMap() {
     if (status === 'idle' || status === 'complete') return;
     if (isPaused) {
       // Stop the loop and flush the exact frame position into the store, so the
-      // paused readout matches the pixel the truck is parked on.
+      // paused readout matches the pixel the truck stopped on.
       lastTsRef.current = null;
       dispatch(
         status === 'delivering'
@@ -229,7 +267,7 @@ export default function RouteMap() {
       <MapGround />
 
       {/* Planned route — the leg still to drive. Drawn as a cased dashed line so
-          it reads as a marked-up intention over the map, not as another road. */}
+          it reads as a marked-up intention over the map, not as a driven leg. */}
       {SEGMENTS.map((seg) => (
         <path
           key={`plan-case-${seg.from}-${seg.to}`}
@@ -271,6 +309,26 @@ export default function RouteMap() {
           strokeWidth="5"
           strokeLinecap="round"
         />
+      ))}
+
+      {/* Leg distances. The map answers "how far is the next leg" itself,
+          rather than leaving empty ground and making the panel carry it. */}
+      {legLabels.map((leg) => (
+        <text
+          key={`leg-${leg.key}`}
+          x={leg.x}
+          y={leg.y}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="var(--text-soft)"
+          stroke="var(--map-bg)"
+          strokeWidth="3.5"
+          paintOrder="stroke"
+          fontSize="11"
+          className="tnum"
+        >
+          {leg.km} km
+        </text>
       ))}
 
       <DepotMark x={ORIGIN.x} y={ORIGIN.y} />
