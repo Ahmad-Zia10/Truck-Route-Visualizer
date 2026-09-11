@@ -21,13 +21,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-[var(--line)]">
+      <header className="border-b border-(--line)">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-5 py-4">
           <div>
-            <h1 className="text-[19px] font-bold tracking-tight text-[var(--text)]">
+            <h1 className="text-[19px] font-bold tracking-tight text-(--text)">
               Route VNS-114
             </h1>
-            <p className="text-sm text-[var(--text-soft)]">
+            <p className="text-sm text-(--text-soft)">
               Morning dispatch · 3 drops
             </p>
           </div>
@@ -35,7 +35,7 @@ export default function App() {
             type="button"
             onClick={() => setDark((d) => !d)}
             aria-pressed={dark}
-            className="ml-auto rounded-md border border-[var(--line)] px-3.5 py-2 text-sm font-medium text-[var(--text-soft)] transition-colors hover:text-[var(--text)]"
+            className="ml-auto min-h-11 rounded-md border border-(--line) px-3.5 text-sm font-medium text-(--text-soft) transition-colors hover:text-(--text)"
           >
             {dark ? 'Light' : 'Dark'}
           </button>
@@ -45,7 +45,7 @@ export default function App() {
       <main className="mx-auto max-w-6xl px-5 py-6">
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-lg border border-[var(--line)]">
+            <div className="overflow-hidden rounded-lg border border-(--line)">
               <RouteMap />
             </div>
             <Controls />

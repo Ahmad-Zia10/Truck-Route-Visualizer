@@ -37,7 +37,7 @@ export default function Controls() {
         type="button"
         onClick={onPrimary}
         disabled={action === 'done'}
-        className="rounded-md bg-(--accent) px-5 py-2.5 text-sm font-semibold text-[#1b1f22] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        className="min-h-11 rounded-md bg-(--accent) px-5 text-sm font-semibold text-(--on-accent) transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {LABELS[action]}
       </button>
@@ -46,31 +46,42 @@ export default function Controls() {
         type="button"
         onClick={() => dispatch(reset())}
         disabled={status === 'idle'}
-        className="rounded-md border border-(--line) px-4 py-2.5 text-sm font-medium text-(--text) transition-colors hover:bg-(--map-bg) disabled:cursor-not-allowed disabled:opacity-40"
+        className="min-h-11 rounded-md border border-(--line) px-4 text-sm font-medium text-(--text) transition-colors hover:bg-(--map-bg) disabled:cursor-not-allowed disabled:opacity-40"
       >
         Reset
       </button>
 
-      <div
-        className="ml-auto flex items-center gap-1 rounded-md border border-(--line) p-1"
-        role="group"
-        aria-label="Playback speed"
-      >
-        {SPEED_OPTIONS.map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => dispatch(speedChanged(option))}
-            aria-pressed={speed === option}
-            className={`tnum rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-              speed === option
-                ? 'bg-(--accent) text-[#1b1f22]'
-                : 'text-(--text-soft) hover:text-(--text)'
-            }`}
-          >
-            {option}×
-          </button>
-        ))}
+      {/* Labelled as a simulation control, not dispatch tooling: a real
+          dispatcher cannot fast-forward a truck. It exists so a reviewer can
+          watch the whole route in about fifteen seconds. */}
+      <div className="ml-auto flex items-center gap-2">
+        <span
+          id="sim-speed-label"
+          className="text-[11px] font-medium tracking-wide text-(--text-soft)"
+        >
+          Simulation speed
+        </span>
+        <div
+          className="flex items-center gap-1 rounded-md border border-(--line) p-1"
+          role="group"
+          aria-labelledby="sim-speed-label"
+        >
+          {SPEED_OPTIONS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => dispatch(speedChanged(option))}
+              aria-pressed={speed === option}
+              className={`tnum min-h-9 min-w-11 rounded px-3 text-sm font-medium transition-colors ${
+                speed === option
+                  ? 'bg-(--accent) text-(--on-accent)'
+                  : 'text-(--text-soft) hover:text-(--text)'
+              }`}
+            >
+              {option}×
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

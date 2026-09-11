@@ -2,40 +2,64 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Colour roles
+ *
+ * Three delivery states must stay distinguishable at a glance, so each owns a
+ * fixed hue: grey = pending, amber = unloading, green = delivered. The same
+ * three hues are used on the map pins and in the stop list, so the two readings
+ * of the route agree on colour as well as on content.
+ *
+ * Each state has two values. The base is the fill used on large shapes; the
+ * `-ink` variant is the darkened form used wherever the colour carries text or
+ * a small mark, which is where the AA threshold applies. Amber at the lightness
+ * that looks right as a pin fill cannot also pass 4.5:1 as text on white — so
+ * rather than compromise the fill or fail the text, the role splits in two.
+ */
 :root {
   --surface: #f4f4f0;
   --panel: #ffffff;
   --line: #e2e1d9;
   --text: #1b1f22;
-  --text-soft: #6b7076;
+  --text-soft: #5b6167; /* 5.36:1 on the map, 6.27:1 on panel */
 
   --map-bg: #eceee9;
   --grid: #dcdfd8;
   --route: #b4b8b0;
   --trail: #2f7d5b;
-  --pin-pending: #9aa0a4;
-  --pin-active: #d98a24;
-  --pin-done: #2f7d5b;
+
+  --pin-pending: #767d83; /* 3.57:1 on map-bg */
+  --pin-active: #b87412; /* 3.24:1 on map-bg */
+  --pin-done: #2f7d5b; /* 4.27:1 on map-bg */
+
   --truck: #1b1f22;
-  --accent: #d98a24;
+  --accent: #d98a24; /* fills, selection, indicators */
+  --accent-ink: #a35f0c; /* the same accent as text — 5.00:1 on panel */
+  --on-accent: #1b1f22; /* text sitting on an accent fill — 6.01:1 */
 }
 
+/* Dark is composed, not inverted: on a dark map the pending pin has to move
+ * lighter to clear 3:1, the opposite direction from its light-mode counterpart.
+ * Amber and green already clear it comfortably here, so they keep one value. */
 .dark {
   --surface: #0f1418;
   --panel: #161d23;
   --line: #26313a;
   --text: #e8eaec;
-  --text-soft: #8e989f;
+  --text-soft: #8e989f; /* 5.97:1 on the map, 5.79:1 on panel */
 
   --map-bg: #131a20;
   --grid: #1e272f;
   --route: #3a464f;
   --trail: #4bbd8a;
-  --pin-pending: #55626b;
-  --pin-active: #e5a144;
-  --pin-done: #4bbd8a;
+
+  --pin-pending: #7e8b94; /* lightened to clear 3:1 on map-bg */
+  --pin-active: #e5a144; /* 7.95:1 */
+  --pin-done: #4bbd8a; /* 7.48:1 */
+
   --truck: #e8eaec;
   --accent: #e5a144;
+  --accent-ink: #e5a144; /* already 7.71:1 on panel — no split needed */
+  --on-accent: #1b1f22; /* 7.52:1 */
 }
 
 html {
@@ -64,8 +88,15 @@ body {
   outline-offset: 2px;
 }
 
+/* Reduced motion removes travel and decoration, not information.
+ *
+ * A blanket `transition-duration: 0.01ms` would also kill the pin colour fade
+ * that signals pending -> unloading -> delivered, stripping state feedback while
+ * leaving the truck moving at full speed. So the progress bar stops sliding and
+ * hover fades stop, while colour changes keep a short cross-fade: the state
+ * change stays perceptible without anything traversing the screen. */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  .motion-travel {
     transition-duration: 0.01ms !important;
   }
 }
