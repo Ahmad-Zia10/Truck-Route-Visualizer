@@ -30,7 +30,7 @@ export default function App() {
             Route VNS-114
           </h1>
           <p className="truncate text-[13px] text-(--text-soft)">
-            Morning dispatch · 3 drops
+            Morning dispatch, 3 drops
           </p>
         </div>
 

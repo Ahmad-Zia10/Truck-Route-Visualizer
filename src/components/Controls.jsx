@@ -37,7 +37,9 @@ export default function Controls() {
         type="button"
         onClick={onPrimary}
         disabled={action === 'done'}
-        className="min-h-11 rounded-md bg-(--accent) px-6 text-sm font-semibold text-(--on-accent) transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        // 15px semibold keeps white-on-accent inside the large-text contrast
+        // band, where 3.84:1 clears AA.
+        className="min-h-11 rounded-md bg-(--accent) px-6 text-[15px] font-semibold text-(--on-accent) transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {LABELS[action]}
       </button>
@@ -57,7 +59,7 @@ export default function Controls() {
       <div className="ml-auto flex items-center gap-2.5">
         <span
           id="sim-speed-label"
-          className="text-[10px] font-semibold uppercase tracking-[0.09em] text-(--text-soft)"
+          className="text-[13px] font-medium text-(--text-soft)"
         >
           Simulation speed
         </span>
