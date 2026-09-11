@@ -8,7 +8,6 @@ import {
   selectEtaSeconds,
   selectStopStates,
   selectCompletedCount,
-  selectProgress,
   selectStatus,
   toKm,
 } from '../features/route/selectors';
@@ -29,16 +28,18 @@ const formatEta = (seconds) => {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 };
 
+const READOUT_TONE = {
+  accent: 'text-(--accent-ink)',
+  done: 'text-(--pin-done)',
+  default: 'text-(--text)',
+};
+
 function Readout({ label, value, tone = 'default' }) {
   return (
     <div>
-      <div className="text-[10px] font-semibold uppercase tracking-[0.09em] text-(--text-soft)">
-        {label}
-      </div>
+      <div className="text-[12px] text-(--text-soft)">{label}</div>
       <div
-        className={`tnum mt-1 text-[22px] font-semibold leading-none tracking-tight ${
-          tone === 'accent' ? 'text-(--accent-ink)' : 'text-(--text)'
-        }`}
+        className={`tnum mt-1 text-[19px] font-semibold leading-none tracking-tight ${READOUT_TONE[tone]}`}
       >
         {value}
       </div>
@@ -56,7 +57,6 @@ export default function StatusPanel() {
   const eta = useSelector(selectEtaSeconds);
   const stops = useSelector(selectStopStates);
   const completed = useSelector(selectCompletedCount);
-  const progress = useSelector(selectProgress);
 
   // Same three hues as the pins, so the headline dot and the map agree.
   const dotColour =
@@ -73,21 +73,18 @@ export default function StatusPanel() {
       className="flex w-full shrink-0 flex-col border-t border-(--line) bg-(--panel) lg:w-[352px] lg:border-l lg:border-t-0"
       aria-label="Truck status"
     >
-      {/* Question one: where is the truck. Largest thing in the panel. */}
-      <div className="border-b border-(--line) px-6 py-5">
-        <div className="flex items-center gap-2">
+      {/* Question one: what is happening now. Body size — the dot carries the
+          state, and the drops list below is what the panel is for. */}
+      <div className="border-b border-(--line) px-6 py-4">
+        <div className="flex items-center gap-2.5">
           <span
-            className="h-2 w-2 shrink-0 rounded-full"
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
             style={{ background: dotColour }}
           />
-          <span className="text-[10px] font-semibold uppercase tracking-[0.09em] text-(--text-soft)">
-            Status
-          </span>
+          <h2 className="text-[14px] font-medium leading-tight text-(--text)">
+            {statusLabel}
+          </h2>
         </div>
-
-        <h2 className="mt-2 text-[26px] font-bold leading-[1.12] tracking-tight text-(--text)">
-          {statusLabel}
-        </h2>
 
         {/* Screen readers hear status changes without watching the map. The text
             is memoized on discrete state, so the ~10Hz distance ticks re-render
@@ -95,22 +92,17 @@ export default function StatusPanel() {
         <p className="sr-only" aria-live="polite">
           {announcement}
         </p>
-
-        <div className="mt-4 flex items-center gap-3">
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-(--line)">
-            <div
-              className="motion-travel h-full rounded-full bg-(--trail) transition-[width] duration-150 ease-linear"
-              style={{ width: `${progress * 100}%` }}
-            />
-          </div>
-          <span className="tnum shrink-0 text-[12px] font-semibold text-(--text-soft)">
-            {completed}/{stops.length}
-          </span>
-        </div>
       </div>
 
       {/* Questions two and three. */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-5 border-b border-(--line) px-6 py-5">
+        {/* The aggregate the drops list only implies. It stays a single figure
+            at any stop count, where counting green rows stops scaling. */}
+        <Readout
+          label="Completed"
+          value={`${completed}/${stops.length}`}
+          tone={status === 'complete' ? 'done' : 'default'}
+        />
         <Readout label="Next stop" value={nextStop ? nextStop.label : '—'} />
         <Readout
           // While unloading the countdown is to the end of the unload, not to an
@@ -123,14 +115,11 @@ export default function StatusPanel() {
         <Readout label="Route length" value={`${toKm(total).toFixed(2)} km`} />
       </div>
 
-      {/* The manifest. Scrolls independently so the readouts above never leave
-          the viewport on a short screen. */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.09em] text-(--text-soft)">
-          Drops
-        </div>
-
-        <ol className="mt-3 space-y-1">
+      {/* The manifest — the visual centre of the panel, and the last thing in
+          the reading order: what has been delivered. Scrolls independently so
+          the readouts above never leave the viewport on a short screen. */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+        <ol>
           {stops.map((stop) => {
             const { dot, ink, label: stateLabel, emphatic } = STOP_STATE[stop.state];
             const live = stop.state === 'delivering';
@@ -139,25 +128,25 @@ export default function StatusPanel() {
                 key={stop.id}
                 // The stop being served is lifted onto its own tinted row, so
                 // the eye lands on it before reading any word.
-                className={`flex items-center gap-3 rounded-md px-2 py-2 ${
+                className={`flex items-center gap-3 rounded-md px-2 py-3.5 ${
                   live ? 'bg-(--accent)/10' : ''
                 }`}
               >
                 <span
-                  className="h-2 w-2 shrink-0 rounded-full"
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
                   style={{ background: `var(${dot})` }}
                 />
-                <span className="w-6 shrink-0 text-[13px] font-bold text-(--text)">
+                <span className="w-7 shrink-0 text-[15px] font-semibold text-(--text)">
                   {stop.label}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[13px] text-(--text-soft)">
+                <span className="min-w-0 flex-1 truncate text-[14px] text-(--text-soft)">
                   {stop.name}
                 </span>
                 {/* The state word carries its own colour and weight when it is
                     live or done, so the three states separate at a glance
                     rather than only on close reading of a grey column. */}
                 <span
-                  className="shrink-0 text-[11px] font-semibold"
+                  className="shrink-0 text-[13px] font-semibold"
                   style={{ color: emphatic ? `var(${ink})` : 'var(--text-soft)' }}
                 >
                   {stateLabel}
