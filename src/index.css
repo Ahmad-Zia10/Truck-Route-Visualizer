@@ -37,9 +37,12 @@
 
   --truck: #161c21;
 
-  --accent: #e35205; /* high-vis orange, fills */
-  --accent-ink: #c04504; /* same hue darkened for text — 4.93:1 on panel */
-  --on-accent: #ffffff; /* text on an accent fill — 4.24:1, large/bold only */
+  /* Chrome, not meaning. The accent drives buttons, focus and selection; the
+   * three status hues above are independent of it, so a change of chrome never
+   * changes what a colour on the map means. */
+  --accent: #0b5fd4; /* signal blue, fills — 5.83:1 on panel */
+  --accent-ink: #0a52b8; /* the same hue as text — 7.21:1 on panel */
+  --on-accent: #ffffff; /* text on an accent fill — 5.83:1 */
 }
 
 /* Dark is composed, not inverted: on a dark map the pending pin has to move
@@ -64,9 +67,9 @@
 
   --truck: #e6eaed;
 
-  --accent: #ff6b1a;
-  --accent-ink: #ff8642; /* 8.29:1 on panel */
-  --on-accent: #161c21;
+  --accent: #4d9bff; /* 6.17:1 on panel */
+  --accent-ink: #6fb0ff; /* 7.73:1 on panel */
+  --on-accent: #161c21; /* 6.09:1 */
 }
 
 html {
@@ -81,13 +84,23 @@ body {
   margin: 0;
   background: var(--surface);
   color: var(--text);
-  font-family: Archivo, ui-sans-serif, system-ui, sans-serif;
+  /* Barlow is drawn from the grotesques used on public signage, so it reads as
+   * equipment rather than as a document. */
+  font-family: Barlow, ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Live numbers use tabular figures so the readouts don't jitter as they tick. */
 .tnum {
   font-variant-numeric: tabular-nums;
+}
+
+/* Map lettering takes the condensed cut, the way signage and chart labels do —
+ * it holds its ground against the route without taking much of it. SVG text
+ * does not inherit the body stack reliably, so it is set here explicitly. */
+svg text {
+  font-family: 'Barlow Semi Condensed', Barlow, ui-sans-serif, system-ui,
+    sans-serif;
 }
 
 :focus-visible {
