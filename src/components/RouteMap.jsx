@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import {
   STOPS,
   SEGMENTS,
@@ -9,6 +10,7 @@ import {
 import {
   geometryMeasured,
   distanceAdvanced,
+  dwellAdvanced,
   arrivedAtStop,
   deliveryFinished,
 } from '../features/route/routeSlice';
@@ -19,6 +21,9 @@ import {
   selectCompletedCount,
   selectGeometry,
   selectStopStates,
+  selectDistance,
+  selectDwell,
+  selectElapsed,
 } from '../features/route/selectors';
 
 const ORIGIN = STOPS[0];
@@ -32,18 +37,23 @@ export default function RouteMap() {
   const completedCount = useSelector(selectCompletedCount);
   const geometry = useSelector(selectGeometry);
   const stopStates = useSelector(selectStopStates);
+  const distance = useSelector(selectDistance);
+  const dwell = useSelector(selectDwell);
+  const elapsed = useSelector(selectElapsed);
 
   const pathRefs = useRef([]);
   const trailRefs = useRef([]);
   const truckRef = useRef(null);
 
-  // Live animation values
-  const distanceRef = useRef(0);
-  const elapsedRef = useRef(0);
-  const dwellRef = useRef(0);
+  // Per-frame cache of the values the store owns. The store is the source of
+  // truth; these exist so a frame can advance without waiting on a dispatch,
+  // and they are re-seeded from the store whenever the loop (re)starts.
+  const distanceRef = useRef(distance);
+  const elapsedRef = useRef(elapsed);
+  const dwellRef = useRef(dwell);
   const lastTsRef = useRef(null);
   const throttleRef = useRef(0);
- 
+
   useEffect(() => {
     const segmentLengths = pathRefs.current.map((p) => p.getTotalLength());
     const stopDistances = segmentLengths.reduce((acc, len) => {
@@ -93,15 +103,19 @@ export default function RouteMap() {
     });
   }, [geometry]);
 
+  // Re-seed the frame cache from the store and repaint. On mount this restores
+  // the truck to wherever the route actually is; on reset it returns to zero.
   useEffect(() => {
     if (!geometry.measured) return;
-    if (status === 'idle') {
-      distanceRef.current = 0;
-      elapsedRef.current = 0;
-      dwellRef.current = 0;
-    }
+    distanceRef.current = distance;
+    elapsedRef.current = elapsed;
+    dwellRef.current = dwell;
     paint();
-  }, [status, completedCount, geometry.measured, paint]);
+    // `distance` is intentionally excluded: the loop advances the cache every
+    // frame and dispatches a throttled copy back, so following it here would
+    // fight the animation. Mount, reset, and stop transitions are what matter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, completedCount, isPaused, geometry.measured, paint]);
 
 
   // The animation loop
@@ -110,8 +124,20 @@ export default function RouteMap() {
     if (!geometry.measured) return;
     if (status === 'idle' || status === 'complete') return;
     if (isPaused) {
-      // Stop the animation loop and reset the timestamp.
+      // Stop the loop and flush the exact frame position into the store, so the
+      // paused readout matches the pixel the truck is parked on.
       lastTsRef.current = null;
+      dispatch(
+        status === 'delivering'
+          ? dwellAdvanced({
+              dwell: dwellRef.current,
+              elapsed: elapsedRef.current,
+            })
+          : distanceAdvanced({
+              distance: distanceRef.current,
+              elapsed: elapsedRef.current,
+            }),
+      );
       return;
     }
 
@@ -153,6 +179,16 @@ export default function RouteMap() {
           dispatch(deliveryFinished());
           return;
         }
+
+        if (ts - throttleRef.current > 100) {
+          throttleRef.current = ts;
+          dispatch(
+            dwellAdvanced({
+              dwell: dwellRef.current,
+              elapsed: elapsedRef.current,
+            }),
+          );
+        }
       }
 
       raf = requestAnimationFrame(tick);
@@ -173,6 +209,10 @@ export default function RouteMap() {
     paint,
     dispatch,
   ]);
+
+  // Reduced motion: the truck still advances, but pin colour changes snap
+  // instead of cross-fading, so state changes stay legible without animation.
+  const pinTransition = useReducedMotion() ? undefined : 'fill 400ms ease';
 
   const pinFill = (state) =>
     state === 'delivered'
@@ -259,7 +299,7 @@ export default function RouteMap() {
           <path
             d={`M ${stop.x} ${stop.y} c -12 -13 -12 -29 0 -29 c 12 0 12 16 0 29 z`}
             fill={pinFill(stop.state)}
-            style={{ transition: 'fill 400ms ease' }}
+            style={{ transition: pinTransition }}
           />
           {stop.state === 'delivered' ? (
             <path
