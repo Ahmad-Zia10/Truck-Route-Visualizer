@@ -3,7 +3,6 @@ import { createSelector } from '@reduxjs/toolkit';
 
 const DELIVERIES = STOPS.slice(1);
 
-export const selectRoute = (s) => s.route;
 export const selectStatus = (s) => s.route.status;
 export const selectIsPaused = (s) => s.route.isPaused;
 export const selectSpeed = (s) => s.route.speed;
@@ -50,13 +49,6 @@ export const selectEtaSeconds = (s) => {
 
   if (status === 'delivering') return Math.max(0, DWELL_SECONDS - dwell);
   return selectDistanceToNextStop(s) / BASE_SPEED;
-};
-
-// how much of the route has been completed
-export const selectProgress = (s) => {
-  const { total } = s.route.geometry;
-  if (!total) return 0;
-  return Math.min(1, s.route.distance / total);
 };
 
 //  Per-stop display state.

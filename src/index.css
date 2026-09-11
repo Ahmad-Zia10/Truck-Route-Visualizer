@@ -95,15 +95,8 @@ body {
   outline-offset: 2px;
 }
 
-/* Reduced motion removes travel and decoration, not information.
- *
- * A blanket `transition-duration: 0.01ms` would also kill the pin colour fade
- * that signals pending -> unloading -> delivered, stripping state feedback while
- * leaving the truck moving at full speed. So the progress bar stops sliding and
- * hover fades stop, while colour changes keep a short cross-fade: the state
- * change stays perceptible without anything traversing the screen. */
-@media (prefers-reduced-motion: reduce) {
-  .motion-travel {
-    transition-duration: 0.01ms !important;
-  }
-}
+/* Reduced motion removes travel and decoration, not information — so it is
+ * handled in JS, not with a blanket `transition-duration` override here. A
+ * blanket rule would also kill the pin colour fade that signals
+ * pending -> unloading -> delivered, stripping state feedback. See
+ * `useReducedMotion`, which RouteMap uses to snap that fade instead. */
